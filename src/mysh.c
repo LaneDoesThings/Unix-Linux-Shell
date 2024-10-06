@@ -5,10 +5,16 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#define promptLength 64
+#define bufferSize 256
+#define argsAmount 16
+#define invalidOptions 1
+#define sizeToLarge 2
+
 char *strremove(char *str, const char *sub);
 
 int echo(char *options, char *params);
-int prompt(char *options, char *params);
+int prompt(char *options, char *params, char *promptText);
 int cat(char *options, char *params);
 int copy(char *options, char *params);
 int delete(char *options, char *params);
@@ -16,9 +22,9 @@ int makedir(char *options, char *params);
 int rmdir(char *options, char *params);
 
 int main(int argc, char *argv[]) {
-  char *command, *args[16], inputbuf[256];
+  char *command, *args[argsAmount], inputbuf[bufferSize];
   bool exit = false;
-  char promptText[64] = "$";
+  char promptText[promptLength] = "$";
 
   while (!exit) {
     // Display the prompt and wait for user input
@@ -40,25 +46,79 @@ int main(int argc, char *argv[]) {
       args[1] = strdup(arguments);
 
     if (strcmp(command, "echo") == 0) {
-      echo(args[0], args[1]);
+      if (echo(args[0], args[1]) != EXIT_SUCCESS) {
+        fputs("Echo command exited with the above error(s)\n", stderr);
+      }
     } else if (strcmp(command, "PS1") == 0) {
-      prompt(args[0], args[1]);
+      if (prompt(args[0], args[1], promptText) != EXIT_SUCCESS) {
+        fputs("PS1 command exited with the above error(s)\n", stderr);
+      }
     } else if (strcmp(command, "cat") == 0) {
-      cat(args[0], args[1]);
+      //   cat(args[0], args[1]);
     } else if (strcmp(command, "cp") == 0) {
-      copy(args[0], args[1]);
+      //   copy(args[0], args[1]);
     } else if (strcmp(command, "rm") == 0) {
-      delete (args[0], args[1]);
+      //   delete (args[0], args[1]);
     } else if (strcmp(command, "mkdir") == 0) {
-      makedir(args[0], args[1]);
+      //   makedir(args[0], args[1]);
     } else if (strcmp(command, "rmdir") == 0) {
-      rmdir(args[0], args[1]);
+      //   rmdir(args[0], args[1]);
     }
   }
 
   return EXIT_SUCCESS;
 }
 
+int echo(char *options, char *params) {
+
+  bool carrageReturn = true;
+
+  if (options != NULL) {
+    for (size_t i = 0; i < strlen(options); i++) {
+      char option = options[i];
+
+      switch (option) {
+      case 'n':
+        carrageReturn = false;
+        break;
+      default:
+        fprintf(stderr, "Unreconized option: %c\n", option);
+        return invalidOptions;
+      }
+    }
+  }
+  if (carrageReturn) {
+    strcat(params, "\r\n");
+  }
+
+  printf("%s", params);
+
+  return EXIT_SUCCESS;
+}
+
+int prompt(char *options, char *params, char *promptText) {
+  if (options != NULL) {
+    for (size_t i = 0; i < strlen(options); i++) {
+      char option = options[i];
+
+      switch (option) {
+      default:
+        fprintf(stderr, "Unreconized option: %c\n", option);
+        return invalidOptions;
+      }
+    }
+  }
+  if (strlen(params) > promptLength) {
+    fprintf(stderr,
+            "Prompt may be no longer than %d characters inputed prompt is %d "
+            "characters\n",
+            promptLength, strlen(promptText));
+    return sizeToLarge;
+  }
+
+  strcpy(promptText, params);
+  return EXIT_SUCCESS;
+}
 // int main(int argc, char *argv[])
 // {
 //     FILE *fileA, *fileB;
