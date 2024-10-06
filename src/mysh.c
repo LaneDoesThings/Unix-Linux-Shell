@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -8,8 +9,10 @@
 #define promptLength 64
 #define bufferSize 256
 #define argsAmount 16
+#define unspecifiedError -1
 #define invalidOptions 1
 #define sizeToLarge 2
+#define noParamsSpecified 3
 
 char *strremove(char *str, const char *sub);
 
@@ -36,7 +39,8 @@ int main(int argc, char *argv[]) {
 
     command = strtok(inputbuf, " ");
 
-    char *arguments = strdup(strtok(NULL, ""));
+    char *postCommand = strtok(NULL, "");
+    char *arguments = strdup((postCommand == NULL) ? "\0" : postCommand);
 
     args[0] = strchr(arguments, '-');
     if (args[0] != NULL) {
@@ -47,18 +51,24 @@ int main(int argc, char *argv[]) {
 
     if (strcmp(command, "echo") == 0) {
       if (echo(args[0], args[1]) != EXIT_SUCCESS) {
-        fputs("Echo command exited with the above error(s)\n", stderr);
+        fputs("echo command exited with the above error(s)\n", stderr);
       }
     } else if (strcmp(command, "PS1") == 0) {
       if (prompt(args[0], args[1], promptText) != EXIT_SUCCESS) {
         fputs("PS1 command exited with the above error(s)\n", stderr);
       }
     } else if (strcmp(command, "cat") == 0) {
-      //   cat(args[0], args[1]);
+      if (cat(args[0], args[1]) != EXIT_SUCCESS) {
+        fputs("cat command exited with the above error(s)\n", stderr);
+      }
     } else if (strcmp(command, "cp") == 0) {
-      //   copy(args[0], args[1]);
+      if (copy(args[0], args[1]) != EXIT_SUCCESS) {
+        fputs("cp command exited with the above error(s)\n", stderr);
+      }
     } else if (strcmp(command, "rm") == 0) {
-      //   delete (args[0], args[1]);
+      if (delete(args[0], args[1]) != EXIT_SUCCESS) {
+        fputs("rm command exited with the above error(s)\n", stderr);
+      }
     } else if (strcmp(command, "mkdir") == 0) {
       //   makedir(args[0], args[1]);
     } else if (strcmp(command, "rmdir") == 0) {
@@ -91,12 +101,16 @@ int echo(char *options, char *params) {
     strcat(params, "\r\n");
   }
 
-  printf("%s", params);
+  printf("%s", (params == NULL) ? "\0" : params);
 
   return EXIT_SUCCESS;
 }
 
 int prompt(char *options, char *params, char *promptText) {
+  if (params == NULL) {
+    fputs("No prompt given\n", stderr);
+    return noParamsSpecified;
+  }
   if (options != NULL) {
     for (size_t i = 0; i < strlen(options); i++) {
       char option = options[i];
@@ -119,6 +133,114 @@ int prompt(char *options, char *params, char *promptText) {
   strcpy(promptText, params);
   return EXIT_SUCCESS;
 }
+
+int cat(char *options, char *params) {
+  FILE *in;
+  char *infile = strtok(params, " ");
+  if (infile == NULL) {
+    fputs("No input file specified\n", stderr);
+    return noParamsSpecified;
+  }
+  if (options != NULL) {
+    for (size_t i = 0; i < strlen(options); i++) {
+      char option = options[i];
+
+      switch (option) {
+      default:
+        fprintf(stderr, "Unreconized option: %c\n", option);
+        return invalidOptions;
+      }
+    }
+  }
+
+  in = fopen(infile, "r");
+  if (in == NULL) {
+    fprintf(stderr, "cat: %s: %s\n", infile, strerror(errno));
+    return unspecifiedError;
+  }
+
+  char c;
+  while ((c = getc(in)) != EOF) {
+    putc(c, stdout);
+  }
+  putc('\n', stdout);
+  fclose(in);
+
+  return EXIT_SUCCESS;
+}
+
+int copy(char *options, char *params) {
+  FILE *in, *out;
+  char *infile = strtok(params, " ");
+  char *outfile = strtok(NULL, " ");
+  if (infile == NULL) {
+    fputs("No input file specified\n", stderr);
+    return noParamsSpecified;
+  }
+  if (outfile == NULL) {
+    fputs("No output file specified\n", stderr);
+    return noParamsSpecified;
+  }
+  if (options != NULL) {
+    for (size_t i = 0; i < strlen(options); i++) {
+      char option = options[i];
+
+      switch (option) {
+      default:
+        fprintf(stderr, "Unreconized option: %c\n", option);
+        return invalidOptions;
+      }
+    }
+  }
+  in = fopen(infile, "r");
+  if (in == NULL) {
+    fprintf(stderr, "cp: %s: %s\n", infile, strerror(errno));
+    return unspecifiedError;
+  }
+  out = fopen(outfile, "w");
+  if (out == NULL) {
+    fprintf(stderr, "cp: %s: %s\n", outfile, strerror(errno));
+    return unspecifiedError;
+  }
+
+  char c;
+  while ((c = getc(in)) != EOF) {
+    putc(c, out);
+  }
+
+  fclose(in);
+  fclose(out);
+
+  return EXIT_SUCCESS;
+}
+
+int delete(char* options, char* params)
+{
+    FILE *in;
+  char *infile = strtok(params, " ");
+  if (infile == NULL) {
+    fputs("No file specified\n", stderr);
+    return noParamsSpecified;
+  }
+  if (options != NULL) {
+    for (size_t i = 0; i < strlen(options); i++) {
+      char option = options[i];
+
+      switch (option) {
+      default:
+        fprintf(stderr, "Unreconized option: %c\n", option);
+        return invalidOptions;
+      }
+    }
+  }
+
+  in = fopen(infile, "r");
+  if (in == NULL) {
+    fprintf(stderr, "rm: %s: %s\n", infile, strerror(errno));
+    return unspecifiedError;
+  }
+}
+
 // int main(int argc, char *argv[])
 // {
 //     FILE *fileA, *fileB;
