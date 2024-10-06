@@ -66,16 +66,17 @@ int main(int argc, char *argv[]) {
         fputs("cp command exited with the above error(s)\n", stderr);
       }
     } else if (strcmp(command, "rm") == 0) {
-      if (delete(args[0], args[1]) != EXIT_SUCCESS) {
+      if (delete (args[0], args[1]) != EXIT_SUCCESS) {
         fputs("rm command exited with the above error(s)\n", stderr);
       }
     } else if (strcmp(command, "mkdir") == 0) {
-      //   makedir(args[0], args[1]);
-    } else if (strcmp(command, "rmdir") == 0) {
-      //   rmdir(args[0], args[1]);
+      if (makedir(args[0], args[1]) != EXIT_SUCCESS) {
+        fputs("rm command exited with the above error(s)\n", stderr);
+      } else if (strcmp(command, "rmdir") == 0) {
+        //   rmdir(args[0], args[1]);
+      }
     }
   }
-
   return EXIT_SUCCESS;
 }
 
@@ -214,9 +215,7 @@ int copy(char *options, char *params) {
   return EXIT_SUCCESS;
 }
 
-int delete(char* options, char* params)
-{
-    FILE *in;
+int delete(char *options, char *params) {
   char *infile = strtok(params, " ");
   if (infile == NULL) {
     fputs("No file specified\n", stderr);
@@ -233,10 +232,33 @@ int delete(char* options, char* params)
       }
     }
   }
-
-  in = fopen(infile, "r");
-  if (in == NULL) {
+  if (remove(infile) != EXIT_SUCCESS) {
     fprintf(stderr, "rm: %s: %s\n", infile, strerror(errno));
+    return unspecifiedError;
+  }
+  return EXIT_SUCCESS;
+}
+
+int makedir(char *options, char *params) {
+  char *infile = strtok(params, " ");
+  if (infile == NULL) {
+    fputs("No directory specified\n", stderr);
+    return noParamsSpecified;
+  }
+  if (options != NULL) {
+    for (size_t i = 0; i < strlen(options); i++) {
+      char option = options[i];
+
+      switch (option) {
+      default:
+        fprintf(stderr, "Unreconized option: %c\n", option);
+        return invalidOptions;
+      }
+    }
+  }
+
+  if (mkdir(infile, 0775) != EXIT_SUCCESS) {
+    fprintf(stderr, "mkdir: %s: %s\n", infile, strerror(errno));
     return unspecifiedError;
   }
 }
