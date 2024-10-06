@@ -22,7 +22,6 @@ int cat(char *options, char *params);
 int copy(char *options, char *params);
 int delete(char *options, char *params);
 int makedir(char *options, char *params);
-int rmdir(char *options, char *params);
 
 int main(int argc, char *argv[]) {
   char *command, *args[argsAmount], inputbuf[bufferSize];
@@ -53,28 +52,45 @@ int main(int argc, char *argv[]) {
       if (echo(args[0], args[1]) != EXIT_SUCCESS) {
         fputs("echo command exited with the above error(s)\n", stderr);
       }
+      continue;
     } else if (strcmp(command, "PS1") == 0) {
       if (prompt(args[0], args[1], promptText) != EXIT_SUCCESS) {
         fputs("PS1 command exited with the above error(s)\n", stderr);
       }
+      continue;
     } else if (strcmp(command, "cat") == 0) {
       if (cat(args[0], args[1]) != EXIT_SUCCESS) {
         fputs("cat command exited with the above error(s)\n", stderr);
       }
+      continue;
     } else if (strcmp(command, "cp") == 0) {
       if (copy(args[0], args[1]) != EXIT_SUCCESS) {
         fputs("cp command exited with the above error(s)\n", stderr);
       }
+      continue;
     } else if (strcmp(command, "rm") == 0) {
       if (delete (args[0], args[1]) != EXIT_SUCCESS) {
         fputs("rm command exited with the above error(s)\n", stderr);
       }
+      continue;
     } else if (strcmp(command, "mkdir") == 0) {
       if (makedir(args[0], args[1]) != EXIT_SUCCESS) {
         fputs("rm command exited with the above error(s)\n", stderr);
-      } else if (strcmp(command, "rmdir") == 0) {
-        //   rmdir(args[0], args[1]);
       }
+      continue;
+    } else if (strcmp(command, "rmdir") == 0) {
+      if (delete (args[0], args[1]) != EXIT_SUCCESS) {
+        fputs("rmdir command exited with the above error(s)\n", stderr);
+      }
+      continue;
+    } else if (strcmp(command, "exit") == 0) {
+      exit = true;
+      continue;
+    } else {
+      fprintf(stderr, "Unknown command entered: %s\n", command);
+      printf("Available commands "
+             "are:\n\techo\n\tPS1\n\tcat\n\tcp\n\trm\n\tmkdir\n\trmdir\nUse -h "
+             "to see more info about a command.\n");
     }
   }
   return EXIT_SUCCESS;
