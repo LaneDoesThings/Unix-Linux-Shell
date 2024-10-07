@@ -11,6 +11,7 @@
 #define promptLength 64
 #define bufferSize 256
 #define argsAmount 16
+#define unreconizedOption(command, option) fprintf(stderr, "Unreconized option: %c\nTry '%s -h' for more information\n", option, command)
 #define unspecifiedError -1
 #define invalidOptions 1
 #define sizeToLarge 2
@@ -109,7 +110,7 @@ int echo(char *options, char *params) {
         carrageReturn = false;
         break;
       default:
-        fprintf(stderr, "Unreconized option: %c\n", option);
+        unreconizedOption("echo", option);
         return invalidOptions;
       }
     }
@@ -134,7 +135,7 @@ int prompt(char *options, char *params, char *promptText) {
 
       switch (option) {
       default:
-        fprintf(stderr, "Unreconized option: %c\n", option);
+        unreconizedOption("echo", option);
         return invalidOptions;
       }
     }
@@ -164,7 +165,7 @@ int cat(char *options, char *params) {
 
       switch (option) {
       default:
-        fprintf(stderr, "Unreconized option: %c\n", option);
+        unreconizedOption("echo", option);
         return invalidOptions;
       }
     }
@@ -204,7 +205,7 @@ int copy(char *options, char *params) {
 
       switch (option) {
       default:
-        fprintf(stderr, "Unreconized option: %c\n", option);
+        unreconizedOption("echo", option);
         return invalidOptions;
       }
     }
@@ -243,7 +244,7 @@ int delete(char *options, char *params) {
 
       switch (option) {
       default:
-        fprintf(stderr, "Unreconized option: %c\n", option);
+        unreconizedOption("echo", option);
         return invalidOptions;
       }
     }
@@ -267,7 +268,7 @@ int makedir(char *options, char *params) {
 
       switch (option) {
       default:
-        fprintf(stderr, "Unreconized option: %c\n", option);
+        unreconizedOption("echo", option);
         return invalidOptions;
       }
     }
