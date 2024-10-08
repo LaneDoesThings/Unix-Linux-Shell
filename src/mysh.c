@@ -51,7 +51,9 @@ int main(int argc, char *argv[]) {
     } else
       args[1] = strdup(arguments);
 
-    if (strcmp(command, "echo") == 0) {
+    if (command == NULL) {
+      continue;
+    } else if (strcmp(command, "echo") == 0) {
       if (echo(args[0], args[1]) != EXIT_SUCCESS) {
         printf("Try 'echo -h' for more information\n");
       }
