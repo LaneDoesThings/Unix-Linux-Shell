@@ -11,6 +11,8 @@
 #define promptLength 64
 #define bufferSize 256
 #define argsAmount 16
+
+// Not worth creating a whole function for one printf call so macro time
 #define unreconizedOption(option)                                              \
   fprintf(stderr, "Unreconized option: %c\n", option)
 #define unspecifiedError -1
@@ -42,8 +44,10 @@ int main(int argc, char *argv[]) {
     command = strtok(inputbuf, " ");
 
     char *postCommand = strtok(NULL, "");
+    // If no arguments are given give an empty string instead of NULL
     char *arguments = strdup((postCommand == NULL) ? "\0" : postCommand);
 
+    // Get the options and arguments given to a command
     args[0] = strchr(arguments, '-');
     if (args[0] != NULL) {
       args[0] = strtok(args[0], "- ");
@@ -129,6 +133,8 @@ int echo(char *options, char *params) {
     strcat(params, "\r\n");
   }
 
+  // If no arguments were given print an empty string otherwise print what was
+  // given
   printf("%s", (params == NULL) ? "\0" : params);
 
   return EXIT_SUCCESS;
@@ -317,6 +323,8 @@ int makedir(char *options, char *params) {
   }
 }
 
+// Should refactor in the futute as is identical to remove besides some flavor
+// text
 int rmdir(char *options, char *params) {
   char *infile = strtok(params, " ");
   if (options != NULL) {
