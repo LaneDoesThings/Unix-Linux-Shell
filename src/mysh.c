@@ -11,7 +11,8 @@
 #define promptLength 64
 #define bufferSize 256
 #define argsAmount 16
-#define unreconizedOption(command, option) fprintf(stderr, "Unreconized option: %c\nTry '%s -h' for more information\n", option, command)
+#define unreconizedOption(option)                                              \
+  fprintf(stderr, "Unreconized option: %c\n", option)
 #define unspecifiedError -1
 #define invalidOptions 1
 #define sizeToLarge 2
@@ -23,6 +24,7 @@ int cat(char *options, char *params);
 int copy(char *options, char *params);
 int delete(char *options, char *params);
 int makedir(char *options, char *params);
+int rmdir(char *options, char *params);
 
 int main(int argc, char *argv[]) {
   char *command, *args[argsAmount], inputbuf[bufferSize];
@@ -51,37 +53,37 @@ int main(int argc, char *argv[]) {
 
     if (strcmp(command, "echo") == 0) {
       if (echo(args[0], args[1]) != EXIT_SUCCESS) {
-        fputs("echo command exited with the above error(s)\n", stderr);
+        printf("Try 'echo -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "PS1") == 0) {
       if (prompt(args[0], args[1], promptText) != EXIT_SUCCESS) {
-        fputs("PS1 command exited with the above error(s)\n", stderr);
+        printf("Try 'PS1 -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "cat") == 0) {
       if (cat(args[0], args[1]) != EXIT_SUCCESS) {
-        fputs("cat command exited with the above error(s)\n", stderr);
+        printf("Try 'cat -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "cp") == 0) {
       if (copy(args[0], args[1]) != EXIT_SUCCESS) {
-        fputs("cp command exited with the above error(s)\n", stderr);
+        printf("Try 'cp -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "rm") == 0) {
       if (delete (args[0], args[1]) != EXIT_SUCCESS) {
-        fputs("rm command exited with the above error(s)\n", stderr);
+        printf("Try 'rm -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "mkdir") == 0) {
       if (makedir(args[0], args[1]) != EXIT_SUCCESS) {
-        fputs("rm command exited with the above error(s)\n", stderr);
+        printf("Try 'mkdir -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "rmdir") == 0) {
-      if (delete (args[0], args[1]) != EXIT_SUCCESS) {
-        fputs("rmdir command exited with the above error(s)\n", stderr);
+      if (rmdir(args[0], args[1]) != EXIT_SUCCESS) {
+        printf("Try 'rmdir -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "exit") == 0) {
@@ -109,8 +111,14 @@ int echo(char *options, char *params) {
       case 'n':
         carrageReturn = false;
         break;
+      case 'h':
+        printf("Usage: echo [OPTION]... [STRING]\n");
+        printf("Outputs the entered text to the standard output.\n\n");
+        printf("-n\t do not output the trailing carriage return\n\n");
+        printf("-h\t display this help and exit\n");
+        return EXIT_SUCCESS;
       default:
-        unreconizedOption("echo", option);
+        unreconizedOption(option);
         return invalidOptions;
       }
     }
@@ -125,20 +133,26 @@ int echo(char *options, char *params) {
 }
 
 int prompt(char *options, char *params, char *promptText) {
-  if (params == NULL) {
-    fputs("No prompt given\n", stderr);
-    return noParamsSpecified;
-  }
   if (options != NULL) {
     for (size_t i = 0; i < strlen(options); i++) {
       char option = options[i];
 
       switch (option) {
+      case 'h':
+        printf("Usage: PS1 [OPTION]... [STRING]\n");
+        printf("Changes the user prompt\n");
+        printf("Prompt may be no longer than %d characters\n\n", promptLength);
+        printf("-h\t display this help and exit\n");
+        return EXIT_SUCCESS;
       default:
-        unreconizedOption("echo", option);
+        unreconizedOption(option);
         return invalidOptions;
       }
     }
+  }
+  if (params == NULL) {
+    fputs("No prompt given\n", stderr);
+    return noParamsSpecified;
   }
   if (strlen(params) > promptLength) {
     fprintf(stderr,
@@ -155,20 +169,26 @@ int prompt(char *options, char *params, char *promptText) {
 int cat(char *options, char *params) {
   FILE *in;
   char *infile = strtok(params, " ");
-  if (infile == NULL) {
-    fputs("No input file specified\n", stderr);
-    return noParamsSpecified;
-  }
+
   if (options != NULL) {
     for (size_t i = 0; i < strlen(options); i++) {
       char option = options[i];
 
       switch (option) {
+      case 'h':
+        printf("Usage: cat [OPTION]... [FILE]\n");
+        printf("Outputs the contents of a file to the standard output\n\n");
+        printf("-h\t display this help and exit\n");
+        return EXIT_SUCCESS;
       default:
-        unreconizedOption("echo", option);
+        unreconizedOption(option);
         return invalidOptions;
       }
     }
+  }
+  if (infile == NULL) {
+    fputs("No input file specified\n", stderr);
+    return noParamsSpecified;
   }
 
   in = fopen(infile, "r");
@@ -191,6 +211,22 @@ int copy(char *options, char *params) {
   FILE *in, *out;
   char *infile = strtok(params, " ");
   char *outfile = strtok(NULL, " ");
+  if (options != NULL) {
+    for (size_t i = 0; i < strlen(options); i++) {
+      char option = options[i];
+
+      switch (option) {
+      case 'h':
+        printf("Usage: cp [OPTION]... SRC DEST\n");
+        printf("Copies the contents of SRC to DEST\n\n");
+        printf("-h\t display this help and exit\n");
+        return EXIT_SUCCESS;
+      default:
+        unreconizedOption(option);
+        return invalidOptions;
+      }
+    }
+  }
   if (infile == NULL) {
     fputs("No input file specified\n", stderr);
     return noParamsSpecified;
@@ -198,17 +234,6 @@ int copy(char *options, char *params) {
   if (outfile == NULL) {
     fputs("No output file specified\n", stderr);
     return noParamsSpecified;
-  }
-  if (options != NULL) {
-    for (size_t i = 0; i < strlen(options); i++) {
-      char option = options[i];
-
-      switch (option) {
-      default:
-        unreconizedOption("echo", option);
-        return invalidOptions;
-      }
-    }
   }
   in = fopen(infile, "r");
   if (in == NULL) {
@@ -234,20 +259,25 @@ int copy(char *options, char *params) {
 
 int delete(char *options, char *params) {
   char *infile = strtok(params, " ");
-  if (infile == NULL) {
-    fputs("No file specified\n", stderr);
-    return noParamsSpecified;
-  }
   if (options != NULL) {
     for (size_t i = 0; i < strlen(options); i++) {
       char option = options[i];
 
       switch (option) {
+      case 'h':
+        printf("Usage: rm [OPTION]... [FILE]\n");
+        printf("Deletes a file\n\n");
+        printf("-h\t display this help and exit\n");
+        return EXIT_SUCCESS;
       default:
-        unreconizedOption("echo", option);
+        unreconizedOption(option);
         return invalidOptions;
       }
     }
+  }
+  if (infile == NULL) {
+    fputs("No file specified\n", stderr);
+    return noParamsSpecified;
   }
   if (remove(infile) != EXIT_SUCCESS) {
     fprintf(stderr, "rm: %s: %s\n", infile, strerror(errno));
@@ -258,24 +288,58 @@ int delete(char *options, char *params) {
 
 int makedir(char *options, char *params) {
   char *infile = strtok(params, " ");
-  if (infile == NULL) {
-    fputs("No directory specified\n", stderr);
-    return noParamsSpecified;
-  }
   if (options != NULL) {
     for (size_t i = 0; i < strlen(options); i++) {
       char option = options[i];
 
       switch (option) {
+      case 'h':
+        printf("Usage: mkdir [OPTION]... [DIRECTORY]\n");
+        printf("Create a directory\n\n");
+        printf("-h\t display this help and exit\n");
+        return EXIT_SUCCESS;
       default:
-        unreconizedOption("echo", option);
+        unreconizedOption(option);
         return invalidOptions;
       }
     }
+  }
+  if (infile == NULL) {
+    fputs("No directory specified\n", stderr);
+    return noParamsSpecified;
   }
 
   if (mkdir(infile, 0775) != EXIT_SUCCESS) {
     fprintf(stderr, "mkdir: %s: %s\n", infile, strerror(errno));
     return unspecifiedError;
   }
+}
+
+int rmdir(char *options, char *params) {
+  char *infile = strtok(params, " ");
+  if (options != NULL) {
+    for (size_t i = 0; i < strlen(options); i++) {
+      char option = options[i];
+
+      switch (option) {
+      case 'h':
+        printf("Usage: rmdir [OPTION]... [DIRECTORY]\n");
+        printf("Deletes a directory\n\n");
+        printf("-h\t display this help and exit\n");
+        return EXIT_SUCCESS;
+      default:
+        unreconizedOption(option);
+        return invalidOptions;
+      }
+    }
+  }
+  if (infile == NULL) {
+    fputs("No directory specified\n", stderr);
+    return noParamsSpecified;
+  }
+  if (remove(infile) != EXIT_SUCCESS) {
+    fprintf(stderr, "rm: %s: %s\n", infile, strerror(errno));
+    return unspecifiedError;
+  }
+  return EXIT_SUCCESS;
 }
