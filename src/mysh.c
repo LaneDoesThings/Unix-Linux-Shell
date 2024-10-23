@@ -1,4 +1,4 @@
-// Lane Wright
+/* Lane Wright*/
 
 #include <errno.h>
 #include <stdbool.h>
@@ -12,7 +12,7 @@
 #define bufferSize 256
 #define argsAmount 16
 
-// Not worth creating a whole function for one printf call so macro time
+/* Not worth creating a whole function for one printf call so macro time*/
 #define unreconizedOption(option)                                              \
   fprintf(stderr, "Unreconized option: %c\n", option)
 #define unspecifiedError -1
@@ -34,20 +34,24 @@ int main(int argc, char *argv[]) {
   char promptText[promptLength] = "$";
 
   while (!exit) {
-    // Display the prompt and wait for user input
+    /* Display the prompt and wait for user input*/
     printf("%s ", promptText);
     fgets(inputbuf, sizeof(inputbuf), stdin);
 
-    // Remove trailing newline
+    /* Remove trailing newline*/
     inputbuf[strcspn(inputbuf, "\n")] = '\0';
 
     command = strtok(inputbuf, " ");
 
     char *postCommand = strtok(NULL, "");
-    // If no arguments are given give an empty string instead of NULL
-    char *arguments = strdup((postCommand == NULL) ? "\0" : postCommand);
+    /* If no arguments are given give an empty string instead of NULL*/
+    char *arguments = "\0";
+    if(postCommand != NULL)
+      arguments = strdup(postCommand);
 
-    // Get the options and arguments given to a command
+    /*char *arguments = strdup((postCommand == NULL) ? "\0" : postCommand);*/
+
+    /* Get the options and arguments given to a command*/
     args[0] = strchr(arguments, '-');
     if (args[0] != NULL) {
       args[0] = strtok(args[0], "- ");
@@ -110,7 +114,8 @@ int echo(char *options, char *params) {
   bool carrageReturn = true;
 
   if (options != NULL) {
-    for (size_t i = 0; i < strlen(options); i++) {
+    size_t i = 0;
+    for (i = 0; i < strlen(options); i++) {
       char option = options[i];
 
       switch (option) {
@@ -133,8 +138,8 @@ int echo(char *options, char *params) {
     strcat(params, "\r\n");
   }
 
-  // If no arguments were given print an empty string otherwise print what was
-  // given
+  /* If no arguments were given print an empty string otherwise print what was
+     given*/
   printf("%s", (params == NULL) ? "\0" : params);
 
   return EXIT_SUCCESS;
@@ -142,7 +147,8 @@ int echo(char *options, char *params) {
 
 int prompt(char *options, char *params, char *promptText) {
   if (options != NULL) {
-    for (size_t i = 0; i < strlen(options); i++) {
+    size_t i = 0;
+    for (i = 0; i < strlen(options); i++) {
       char option = options[i];
 
       switch (option) {
@@ -179,7 +185,8 @@ int cat(char *options, char *params) {
   char *infile = strtok(params, " ");
 
   if (options != NULL) {
-    for (size_t i = 0; i < strlen(options); i++) {
+    size_t i = 0;
+    for (i = 0; i < strlen(options); i++) {
       char option = options[i];
 
       switch (option) {
@@ -220,7 +227,8 @@ int copy(char *options, char *params) {
   char *infile = strtok(params, " ");
   char *outfile = strtok(NULL, " ");
   if (options != NULL) {
-    for (size_t i = 0; i < strlen(options); i++) {
+    size_t i = 0;
+    for (i = 0; i < strlen(options); i++) {
       char option = options[i];
 
       switch (option) {
@@ -268,7 +276,8 @@ int copy(char *options, char *params) {
 int delete(char *options, char *params) {
   char *infile = strtok(params, " ");
   if (options != NULL) {
-    for (size_t i = 0; i < strlen(options); i++) {
+    size_t i = 0;
+    for (i = 0; i < strlen(options); i++) {
       char option = options[i];
 
       switch (option) {
@@ -297,7 +306,8 @@ int delete(char *options, char *params) {
 int makedir(char *options, char *params) {
   char *infile = strtok(params, " ");
   if (options != NULL) {
-    for (size_t i = 0; i < strlen(options); i++) {
+    size_t i = 0;
+    for (i = 0; i < strlen(options); i++) {
       char option = options[i];
 
       switch (option) {
@@ -323,12 +333,13 @@ int makedir(char *options, char *params) {
   }
 }
 
-// Should refactor in the futute as is identical to remove besides some flavor
-// text
+/* Should refactor in the futute as is identical to remove besides some flavor
+   text*/
 int rmdir(char *options, char *params) {
   char *infile = strtok(params, " ");
   if (options != NULL) {
-    for (size_t i = 0; i < strlen(options); i++) {
+    size_t i = 0;
+    for (i = 0; i < strlen(options); i++) {
       char option = options[i];
 
       switch (option) {

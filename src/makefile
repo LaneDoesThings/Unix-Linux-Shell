@@ -3,7 +3,7 @@ all: mysh.bin
 mysh.bin: mysh.o
 
 %.o: %.c
-	gcc $< -o ../bin/mysh.bin -ansi -std=c23
+	gcc $< -o ../bin/mysh.bin -ansi
 
 start: mysh.bin
 	../bin/mysh.bin
