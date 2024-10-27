@@ -28,6 +28,8 @@ int delete(char *options, char *params);
 int makedir(char *options, char *params);
 int rmdir(char *options, char *params);
 
+char* strdup(const char *s);
+
 int main(int argc, char *argv[]) {
   char *command, *args[argsAmount], inputbuf[bufferSize];
   bool exit = false;
@@ -363,4 +365,15 @@ int rmdir(char *options, char *params) {
     return unspecifiedError;
   }
   return EXIT_SUCCESS;
+}
+
+
+/*strdup is POSIX not C89 Standard so implement it here*/
+char* strdup(const char *s)
+{
+  size_t len = strlen(s) + 1;
+  void *new = malloc(len);
+  if (new == NULL)
+    return NULL;
+  return (char *)memcpy(new, s, len);
 }
