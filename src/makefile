@@ -1,12 +1,14 @@
-all: mysh.bin
+shell = mysh
 
-mysh.bin: mysh.o
+all: $(shell).bin
+
+$(shell).bin: $(shell).o
 
 %.o: %.c
-	gcc $< -o ../bin/mysh.bin -ansi
+	gcc $< -o ../bin/$(basename $<) -ansi
 
-start: mysh.bin
-	../bin/mysh.bin
+start: $(shell).bin
+	../bin/$(shell).bin
 
 format:
 	clang-format -i *.c
