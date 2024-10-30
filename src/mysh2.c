@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <wait.h>
 
 #define promptLength 64
 #define bufferSize 256
@@ -27,8 +28,9 @@ int copy(char *options, char *params);
 int delete(char *options, char *params);
 int makedir(char *options, char *params);
 int rmdir(char *options, char *params);
+int exec(char *options, char *params);
 
-char* strdup(const char *s);
+char *strdup(const char *s);
 
 int main(int argc, char *argv[]) {
   char *command, *args[argsAmount], inputbuf[bufferSize];
@@ -48,7 +50,7 @@ int main(int argc, char *argv[]) {
     char *postCommand = strtok(NULL, "");
     /* If no arguments are given give an empty string instead of NULL*/
     char *arguments = "\0";
-    if(postCommand != NULL)
+    if (postCommand != NULL)
       arguments = strdup(postCommand);
 
     /*char *arguments = strdup((postCommand == NULL) ? "\0" : postCommand);*/
@@ -98,14 +100,16 @@ int main(int argc, char *argv[]) {
         printf("Try 'rmdir -h' for more information\n");
       }
       continue;
+    } else if (strcmp(command, "exec") == 0) {
+      if (exec(args[0], args[1]) != EXIT_SUCCESS) {
+        printf("Try 'exec -h' for more information\n");
+      }
+      continue;
     } else if (strcmp(command, "exit") == 0) {
       exit = true;
       continue;
     } else {
       fprintf(stderr, "Unknown command entered: %s\n", command);
-      printf("Available commands "
-             "are:\n\techo\n\tPS1\n\tcat\n\tcp\n\trm\n\tmkdir\n\trmdir\nUse -h "
-             "to see more info about a command.\n");
     }
   }
   return EXIT_SUCCESS;
@@ -367,10 +371,37 @@ int rmdir(char *options, char *params) {
   return EXIT_SUCCESS;
 }
 
+int exec(char *options, char *params) {
+  if (options != NULL) {
+    size_t i = 0;
+    for (i = 0; i < strlen(options); i++) {
+      char option = options[i];
+
+      switch (option) {
+      case 'h':
+        printf("Usage: exec [OPTION]... [PROGRAM]\n");
+        printf("Starts a program\n\n");
+        printf("-h\t display this help and exit\n");
+        return EXIT_SUCCESS;
+      default:
+        unreconizedOption(option);
+        return invalidOptions;
+      }
+    }
+  }
+
+  if (fork() > 0) {
+    char *path = getenv("PATH");
+
+    char *dir = strtok(path, ":");
+  } else
+    return EXIT_FAILURE;
+
+  return EXIT_SUCCESS;
+}
 
 /*strdup is POSIX not C89 Standard so implement it here*/
-char* strdup(const char *s)
-{
+char *strdup(const char *s) {
   size_t len = strlen(s) + 1;
   void *new = malloc(len);
   if (new == NULL)
