@@ -1,5 +1,6 @@
 /* Lane Wright*/
 
+#include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -7,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <wait.h>
 
 #define promptLength 64
@@ -27,10 +29,12 @@ int cat(char *options, char *params);
 int copy(char *options, char *params);
 int delete(char *options, char *params);
 int makedir(char *options, char *params);
-int rmdir(char *options, char *params);
-int exec(char *options, char *params);
+int remdir(char *options, char *params);
+int exec(char *arguments);
 
 char *strdup(const char *s);
+struct dirent *readdir(DIR *__dirp);
+DIR *opendir(const char *__name);
 
 int main(int argc, char *argv[]) {
   char *command, *args[argsAmount], inputbuf[bufferSize];
@@ -96,12 +100,12 @@ int main(int argc, char *argv[]) {
       }
       continue;
     } else if (strcmp(command, "rmdir") == 0) {
-      if (rmdir(args[0], args[1]) != EXIT_SUCCESS) {
+      if (remdir(args[0], args[1]) != EXIT_SUCCESS) {
         printf("Try 'rmdir -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "exec") == 0) {
-      if (exec(args[0], args[1]) != EXIT_SUCCESS) {
+      if (exec(arguments) != EXIT_SUCCESS) {
         printf("Try 'exec -h' for more information\n");
       }
       continue;
@@ -341,7 +345,7 @@ int makedir(char *options, char *params) {
 
 /* Should refactor in the futute as is identical to remove besides some flavor
    text*/
-int rmdir(char *options, char *params) {
+int remdir(char *options, char *params) {
   char *infile = strtok(params, " ");
   if (options != NULL) {
     size_t i = 0;
@@ -371,40 +375,46 @@ int rmdir(char *options, char *params) {
   return EXIT_SUCCESS;
 }
 
-int exec(char *options, char *params) {
-  if (options != NULL) {
-    size_t i = 0;
-    for (i = 0; i < strlen(options); i++) {
-      char option = options[i];
+int exec(char *arguments) {
+  char *params = strtok(arguments, " ");
+  char *options = strtok(NULL, "");
 
-      switch (option) {
-      case 'h':
-        printf("Usage: exec [OPTION]... [PROGRAM]\n");
-        printf("Starts a program\n\n");
-        printf("-h\t display this help and exit\n");
-        return EXIT_SUCCESS;
-      default:
-        unreconizedOption(option);
-        return invalidOptions;
+
+  int status;
+  switch (fork()) {
+  case -1:
+    return EXIT_FAILURE;
+  case 0:
+    char *path = getenv("PATH");
+    char* arr[] = {params, options, NULL};
+    size_t i;
+    char* paths[256];
+    paths[0] = strtok(path, ":");
+    for(i = 1; i < 256; i++)
+    {
+      paths[i] = strtok(NULL, ":");
+    }
+
+    for(i = 0; i < 256; i++)
+    {
+      if(paths[i] == NULL) break;
+
+      char* temp = strdup(paths[i]);
+      char *pathFull = malloc(256);
+      strcpy(pathFull, temp);
+      strcat(strcat(pathFull, "/"), params);
+
+      if(execv(pathFull, arr) < 0)
+      {
+        free(pathFull);
+        continue;
       }
     }
+    exit(EXIT_SUCCESS);
+  default:
+    wait(&status);
+    fprintf(stderr, "Exit status: %d\n", WEXITSTATUS(status));
   }
 
-  if (fork() > 0) {
-    char *path = getenv("PATH");
-
-    char *dir = strtok(path, ":");
-  } else
-    return EXIT_FAILURE;
-
   return EXIT_SUCCESS;
-}
-
-/*strdup is POSIX not C89 Standard so implement it here*/
-char *strdup(const char *s) {
-  size_t len = strlen(s) + 1;
-  void *new = malloc(len);
-  if (new == NULL)
-    return NULL;
-  return (char *)memcpy(new, s, len);
 }
