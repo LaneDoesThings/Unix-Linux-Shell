@@ -379,36 +379,42 @@ int exec(char *arguments) {
   char *params = strtok(arguments, " ");
   char *options = strtok(NULL, "");
 
-
   int status;
   switch (fork()) {
   case -1:
     return EXIT_FAILURE;
   case 0:
     char *path = getenv("PATH");
-    char* arr[] = {params, options, NULL};
-    size_t i;
-    char* paths[256];
-    paths[0] = strtok(path, ":");
-    for(i = 1; i < 256; i++)
+    
+    char *arr[] = {params, options, NULL};
+    if(params[0] != '/')
     {
+    size_t i;
+    char *paths[256];
+    paths[0] = strtok(path, ":");
+    for (i = 1; i < 256; i++) {
       paths[i] = strtok(NULL, ":");
     }
 
-    for(i = 0; i < 256; i++)
-    {
-      if(paths[i] == NULL) break;
+    for (i = 0; i < 256; i++) {
+      if (paths[i] == NULL)
+        break;
 
-      char* temp = strdup(paths[i]);
+      char *temp = strdup(paths[i]);
       char *pathFull = malloc(256);
       strcpy(pathFull, temp);
       strcat(strcat(pathFull, "/"), params);
 
-      if(execv(pathFull, arr) < 0)
-      {
+      if (execv(pathFull, arr) < 0) {
         free(pathFull);
         continue;
       }
+    }
+    }
+    else
+    {
+      
+      execv(params, arr);
     }
     exit(EXIT_SUCCESS);
   default:
