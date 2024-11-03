@@ -47,8 +47,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  printf("path: %s\noptions: %s\n", path, options);
-
   DIR *dir;
   struct dirent *dirEntry;
 

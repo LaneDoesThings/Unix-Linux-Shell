@@ -1,6 +1,5 @@
 /* Lane Wright*/
 
-#include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -11,35 +10,35 @@
 #include <unistd.h>
 #include <wait.h>
 
-#define promptLength 64
-#define bufferSize 256
-#define argsAmount 16
+#define PROMPTLENGTH 64
+#define BUFFERSIZE 256
+#define ARGSAMOUNT 16
 
 /* Not worth creating a whole function for one printf call so macro time*/
 #define unreconizedOption(option)                                              \
   fprintf(stderr, "Unreconized option: %c\n", option)
-#define unspecifiedError -1
-#define invalidOptions 1
-#define sizeToLarge 2
-#define noParamsSpecified 3
 
-int echo(char *options, char *params);
-int prompt(char *options, char *params, char *promptText);
-int cat(char *options, char *params);
-int copy(char *options, char *params);
-int delete(char *options, char *params);
-int makedir(char *options, char *params);
-int remdir(char *options, char *params);
-int exec(char *arguments);
+int echo(char *options, char **params);
+int prompt(char *options, char **params, char *promptText);
+int cat(char *options, char **params);
+int copy(char *options, char **params);
+int delete(char *options, char **params);
+int makedir(char *options, char **params);
+int remdir(char *options, char **params);
+int exec(char *options, char **params);
 
+void arraddchar(char arr[ARGSAMOUNT], char toAdd);
+void arraddstr(char *arr[ARGSAMOUNT], char *toAdd);
+char *paramaterstr(char **params);
+
+/*strdup isn't in the C90 Standard but a POSIX standard so it needs a prototype
+ * defined*/
 char *strdup(const char *s);
-struct dirent *readdir(DIR *__dirp);
-DIR *opendir(const char *__name);
 
 int main(int argc, char *argv[]) {
-  char *command, *args[argsAmount], inputbuf[bufferSize];
+  char *command, inputbuf[BUFFERSIZE] = {0};
   bool exit = false;
-  char promptText[promptLength] = "$";
+  char promptText[PROMPTLENGTH] = "$";
 
   while (!exit) {
     /* Display the prompt and wait for user input*/
@@ -49,63 +48,71 @@ int main(int argc, char *argv[]) {
     /* Remove trailing newline*/
     inputbuf[strcspn(inputbuf, "\n")] = '\0';
 
-    command = strtok(inputbuf, " ");
+    char *paramaters[BUFFERSIZE] = {0}, *args[ARGSAMOUNT] = {0},
+         options[ARGSAMOUNT] = {0};
 
-    char *postCommand = strtok(NULL, "");
-    /* If no arguments are given give an empty string instead of NULL*/
-    char *arguments = "\0";
-    if (postCommand != NULL)
-      arguments = strdup(postCommand);
+    /*Initial tokenization*/
+    args[0] = strtok(inputbuf, " ");
 
-    /*char *arguments = strdup((postCommand == NULL) ? "\0" : postCommand);*/
+    size_t i;
+    for (i = 1; i < ARGSAMOUNT; i++) {
+      args[i] = strtok(NULL, " ");
+    }
 
-    /* Get the options and arguments given to a command*/
-    args[0] = strchr(arguments, '-');
-    if (args[0] != NULL) {
-      args[0] = strtok(args[0], "- ");
-      args[1] = strtok(NULL, "");
-    } else
-      args[1] = strdup(arguments);
+    command = args[0];
+
+    for (i = 1; i < ARGSAMOUNT; i++) {
+      if (args[i] == NULL)
+        break;
+      if (args[i][0] == '-') {
+        size_t j;
+        for (j = 1; j < strlen(args[i]); j++) {
+          char toAdd = args[i][j];
+          arraddchar(options, toAdd);
+        }
+      } else
+        arraddstr(paramaters, args[i]);
+    }
 
     if (command == NULL) {
       continue;
     } else if (strcmp(command, "echo") == 0) {
-      if (echo(args[0], args[1]) != EXIT_SUCCESS) {
+      if (echo(options, paramaters) != EXIT_SUCCESS) {
         printf("Try 'echo -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "PS1") == 0) {
-      if (prompt(args[0], args[1], promptText) != EXIT_SUCCESS) {
+      if (prompt(options, paramaters, promptText) != EXIT_SUCCESS) {
         printf("Try 'PS1 -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "cat") == 0) {
-      if (cat(args[0], args[1]) != EXIT_SUCCESS) {
+      if (cat(options, paramaters) != EXIT_SUCCESS) {
         printf("Try 'cat -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "cp") == 0) {
-      if (copy(args[0], args[1]) != EXIT_SUCCESS) {
+      if (copy(options, paramaters) != EXIT_SUCCESS) {
         printf("Try 'cp -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "rm") == 0) {
-      if (delete (args[0], args[1]) != EXIT_SUCCESS) {
+      if (delete (options, paramaters) != EXIT_SUCCESS) {
         printf("Try 'rm -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "mkdir") == 0) {
-      if (makedir(args[0], args[1]) != EXIT_SUCCESS) {
+      if (makedir(options, paramaters) != EXIT_SUCCESS) {
         printf("Try 'mkdir -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "rmdir") == 0) {
-      if (remdir(args[0], args[1]) != EXIT_SUCCESS) {
+      if (remdir(options, paramaters) != EXIT_SUCCESS) {
         printf("Try 'rmdir -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "exec") == 0) {
-      if (exec(arguments) != EXIT_SUCCESS) {
+      if (exec(options, paramaters) != EXIT_SUCCESS) {
         printf("Try 'exec -h' for more information\n");
       }
       continue;
@@ -119,15 +126,15 @@ int main(int argc, char *argv[]) {
   return EXIT_SUCCESS;
 }
 
-int echo(char *options, char *params) {
+int echo(char *options, char **params) {
 
   bool carrageReturn = true;
+  char *toPrint = paramaterstr(params);
 
   if (options != NULL) {
-    size_t i = 0;
+    size_t i;
     for (i = 0; i < strlen(options); i++) {
       char option = options[i];
-
       switch (option) {
       case 'n':
         carrageReturn = false;
@@ -140,22 +147,25 @@ int echo(char *options, char *params) {
         return EXIT_SUCCESS;
       default:
         unreconizedOption(option);
-        return invalidOptions;
+        return EXIT_FAILURE;
       }
     }
   }
   if (carrageReturn) {
-    strcat(params, "\r\n");
+    strcat(toPrint, "\r\n");
   }
 
   /* If no arguments were given print an empty string otherwise print what was
      given*/
-  printf("%s", (params == NULL) ? "\0" : params);
+  printf("%s", (toPrint == NULL) ? "\0" : toPrint);
 
+  free(toPrint);
   return EXIT_SUCCESS;
 }
 
-int prompt(char *options, char *params, char *promptText) {
+int prompt(char *options, char **params, char *promptText) {
+  char *newPrompt = paramaterstr(params);
+
   if (options != NULL) {
     size_t i = 0;
     for (i = 0; i < strlen(options); i++) {
@@ -165,34 +175,32 @@ int prompt(char *options, char *params, char *promptText) {
       case 'h':
         printf("Usage: PS1 [OPTION]... [STRING]\n");
         printf("Changes the user prompt\n");
-        printf("Prompt may be no longer than %d characters\n\n", promptLength);
+        printf("Prompt may be no longer than %d characters\n\n", PROMPTLENGTH);
         printf("-h\t display this help and exit\n");
         return EXIT_SUCCESS;
       default:
         unreconizedOption(option);
-        return invalidOptions;
+        return EXIT_FAILURE;
       }
     }
   }
-  if (params == NULL) {
-    fputs("No prompt given\n", stderr);
-    return noParamsSpecified;
-  }
-  if (strlen(params) > promptLength) {
+
+  if (strlen(newPrompt) > PROMPTLENGTH) {
     fprintf(stderr,
             "Prompt may be no longer than %d characters inputed prompt is %d "
             "characters\n",
-            promptLength, strlen(promptText));
-    return sizeToLarge;
+            PROMPTLENGTH, strlen(newPrompt));
+    return EXIT_FAILURE;
   }
 
-  strcpy(promptText, params);
+  strcpy(promptText, newPrompt);
+  free(newPrompt);
   return EXIT_SUCCESS;
 }
 
-int cat(char *options, char *params) {
+int cat(char *options, char **params) {
   FILE *in;
-  char *infile = strtok(params, " ");
+  char *infile = paramaterstr(params);
 
   if (options != NULL) {
     size_t i = 0;
@@ -207,19 +215,20 @@ int cat(char *options, char *params) {
         return EXIT_SUCCESS;
       default:
         unreconizedOption(option);
-        return invalidOptions;
+        return EXIT_FAILURE;
       }
     }
   }
+
   if (infile == NULL) {
     fputs("No input file specified\n", stderr);
-    return noParamsSpecified;
+    return EXIT_FAILURE;
   }
 
   in = fopen(infile, "r");
   if (in == NULL) {
     fprintf(stderr, "cat: %s: %s\n", infile, strerror(errno));
-    return unspecifiedError;
+    return EXIT_FAILURE;
   }
 
   char c;
@@ -232,10 +241,10 @@ int cat(char *options, char *params) {
   return EXIT_SUCCESS;
 }
 
-int copy(char *options, char *params) {
+int copy(char *options, char **params) {
   FILE *in, *out;
-  char *infile = strtok(params, " ");
-  char *outfile = strtok(NULL, " ");
+  char *infile = params[0];
+  char *outfile = params[1];
   if (options != NULL) {
     size_t i = 0;
     for (i = 0; i < strlen(options); i++) {
@@ -249,27 +258,27 @@ int copy(char *options, char *params) {
         return EXIT_SUCCESS;
       default:
         unreconizedOption(option);
-        return invalidOptions;
+        return EXIT_FAILURE;
       }
     }
   }
   if (infile == NULL) {
     fputs("No input file specified\n", stderr);
-    return noParamsSpecified;
+    return EXIT_FAILURE;
   }
   if (outfile == NULL) {
     fputs("No output file specified\n", stderr);
-    return noParamsSpecified;
+    return EXIT_FAILURE;
   }
   in = fopen(infile, "r");
   if (in == NULL) {
     fprintf(stderr, "cp: %s: %s\n", infile, strerror(errno));
-    return unspecifiedError;
+    return EXIT_FAILURE;
   }
   out = fopen(outfile, "w");
   if (out == NULL) {
     fprintf(stderr, "cp: %s: %s\n", outfile, strerror(errno));
-    return unspecifiedError;
+    return EXIT_FAILURE;
   }
 
   char c;
@@ -283,8 +292,8 @@ int copy(char *options, char *params) {
   return EXIT_SUCCESS;
 }
 
-int delete(char *options, char *params) {
-  char *infile = strtok(params, " ");
+int delete(char *options, char **params) {
+  char *infile = paramaterstr(params);
   if (options != NULL) {
     size_t i = 0;
     for (i = 0; i < strlen(options); i++) {
@@ -298,23 +307,23 @@ int delete(char *options, char *params) {
         return EXIT_SUCCESS;
       default:
         unreconizedOption(option);
-        return invalidOptions;
+        return EXIT_FAILURE;
       }
     }
   }
   if (infile == NULL) {
     fputs("No file specified\n", stderr);
-    return noParamsSpecified;
+    return EXIT_FAILURE;
   }
   if (remove(infile) != EXIT_SUCCESS) {
     fprintf(stderr, "rm: %s: %s\n", infile, strerror(errno));
-    return unspecifiedError;
+    return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;
 }
 
-int makedir(char *options, char *params) {
-  char *infile = strtok(params, " ");
+int makedir(char *options, char **params) {
+  char *infile = paramaterstr(params);
   if (options != NULL) {
     size_t i = 0;
     for (i = 0; i < strlen(options); i++) {
@@ -328,25 +337,25 @@ int makedir(char *options, char *params) {
         return EXIT_SUCCESS;
       default:
         unreconizedOption(option);
-        return invalidOptions;
+        return EXIT_FAILURE;
       }
     }
   }
   if (infile == NULL) {
     fputs("No directory specified\n", stderr);
-    return noParamsSpecified;
+    return EXIT_FAILURE;
   }
 
   if (mkdir(infile, 0775) != EXIT_SUCCESS) {
     fprintf(stderr, "mkdir: %s: %s\n", infile, strerror(errno));
-    return unspecifiedError;
+    return EXIT_FAILURE;
   }
 }
 
 /* Should refactor in the futute as is identical to remove besides some flavor
    text*/
-int remdir(char *options, char *params) {
-  char *infile = strtok(params, " ");
+int remdir(char *options, char **params) {
+  char *infile = paramaterstr(params);
   if (options != NULL) {
     size_t i = 0;
     for (i = 0; i < strlen(options); i++) {
@@ -360,67 +369,135 @@ int remdir(char *options, char *params) {
         return EXIT_SUCCESS;
       default:
         unreconizedOption(option);
-        return invalidOptions;
+        return EXIT_FAILURE;
       }
     }
   }
   if (infile == NULL) {
     fputs("No directory specified\n", stderr);
-    return noParamsSpecified;
+    return EXIT_FAILURE;
   }
   if (remove(infile) != EXIT_SUCCESS) {
     fprintf(stderr, "rm: %s: %s\n", infile, strerror(errno));
-    return unspecifiedError;
+    return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;
 }
 
-int exec(char *arguments) {
-  char *params = strtok(arguments, " ");
-  char *options = strtok(NULL, "");
-
+int exec(char *options, char **params) {
   int status;
   switch (fork()) {
   case -1:
     return EXIT_FAILURE;
   case 0:
     char *path = getenv("PATH");
-    
-    char *arr[] = {params, options, NULL};
-    if(params[0] != '/')
+
+    char *toExec = params[0];
+    char *toExecParams = malloc(BUFFERSIZE);
+    strcpy(toExecParams, "\0");
+
+    if(params[1] == NULL)
+      toExecParams = NULL;
+    else
     {
     size_t i;
-    char *paths[256];
+    for (i = 1; i < ARGSAMOUNT; i++) {
+      if (params[i] == NULL)
+        break;
+      if (i == 1)
+        strcat(toExecParams, params[i]);
+      else
+        strcat(strcat(toExecParams, " "), params[i]);
+    }
+    }
+
+  char *opts = malloc(sizeof(options) + sizeof(char) + 1);
+  if (strcmp(options, "\0") != 0)
+    strcat(strcat(strcpy(opts, "-"), options), "\0");
+  else
+    opts = NULL;
+  
+
+  char** arr;
+  if(opts == NULL)
+  {
+    char *test[] = {toExec, toExecParams, opts, NULL};
+    arr = test;
+  }
+  else
+  {
+    char *test[] = {toExec, opts, toExecParams, NULL};
+    arr = test;
+  }
+  if (toExec[0] != '/') {
+    size_t i;
+    char *paths[BUFFERSIZE];
     paths[0] = strtok(path, ":");
-    for (i = 1; i < 256; i++) {
+    for (i = 1; i < BUFFERSIZE; i++) {
       paths[i] = strtok(NULL, ":");
     }
 
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < BUFFERSIZE; i++) {
       if (paths[i] == NULL)
         break;
 
       char *temp = strdup(paths[i]);
-      char *pathFull = malloc(256);
+      char *pathFull = malloc(BUFFERSIZE);
       strcpy(pathFull, temp);
-      strcat(strcat(pathFull, "/"), params);
+      strcat(strcat(pathFull, "/"), toExec);
 
       if (execv(pathFull, arr) < 0) {
         free(pathFull);
         continue;
       }
     }
+  } else {
+    execv(toExec, arr);
+  }
+  free(opts);
+  free(toExecParams);
+  exit(EXIT_SUCCESS);
+default:
+  wait(&status);
+  fprintf(stderr, "Exit status: %d\n", WEXITSTATUS(status));
+}
+
+return EXIT_SUCCESS;
+}
+
+void arraddchar(char arr[ARGSAMOUNT], char toAdd) {
+  size_t i;
+  for (i = 0; i < ARGSAMOUNT; i++) {
+    if (arr[i] == '\0') {
+      arr[i] = toAdd;
+      return;
     }
+  }
+}
+
+void arraddstr(char *arr[ARGSAMOUNT], char *toAdd) {
+  size_t i;
+  for (i = 0; i < ARGSAMOUNT; i++) {
+    if (arr[i] == NULL) {
+      arr[i] = toAdd;
+      return;
+    }
+  }
+}
+
+char *paramaterstr(char **params) {
+  char *str = malloc(BUFFERSIZE);
+  strcpy(str, "\0");
+
+  size_t i;
+  for (i = 0; i < ARGSAMOUNT; i++) {
+    if (params[i] == NULL)
+      break;
+    if (i == 0)
+      strcat(str, params[i]);
     else
-    {
-      
-      execv(params, arr);
-    }
-    exit(EXIT_SUCCESS);
-  default:
-    wait(&status);
-    fprintf(stderr, "Exit status: %d\n", WEXITSTATUS(status));
+      strcat(strcat(str, " "), params[i]);
   }
 
-  return EXIT_SUCCESS;
+  return str;
 }
