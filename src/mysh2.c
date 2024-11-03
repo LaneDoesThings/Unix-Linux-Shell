@@ -1,4 +1,4 @@
-/* Lane Wright*/
+/*Lane Wright*/
 
 #include <errno.h>
 #include <stdbool.h>
