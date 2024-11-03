@@ -26,6 +26,7 @@ int delete(char *options, char **params);
 int makedir(char *options, char **params);
 int remdir(char *options, char **params);
 int exec(char *options, char **params);
+int ls(char *options, char **params);
 
 void arraddchar(char arr[ARGSAMOUNT], char toAdd);
 void arraddstr(char *arr[ARGSAMOUNT], char *toAdd);
@@ -114,6 +115,11 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(command, "exec") == 0) {
       if (exec(options, paramaters) != EXIT_SUCCESS) {
         printf("Try 'exec -h' for more information\n");
+      }
+      continue;
+    } else if (strcmp(command, "ls") == 0) {
+      if (ls(options, paramaters) != EXIT_SUCCESS) {
+        printf("Try 'ls -h' for more information\n");
       }
       continue;
     } else if (strcmp(command, "exit") == 0) {
@@ -385,7 +391,8 @@ int remdir(char *options, char **params) {
 }
 
 int exec(char *options, char **params) {
-  int status;
+
+  int status; /*return status*/
   switch (fork()) {
   case -1:
     return EXIT_FAILURE;
@@ -396,73 +403,127 @@ int exec(char *options, char **params) {
     char *toExecParams = malloc(BUFFERSIZE);
     strcpy(toExecParams, "\0");
 
-    if(params[1] == NULL)
+    if (params[1] == NULL)
       toExecParams = NULL;
-    else
-    {
-    size_t i;
-    for (i = 1; i < ARGSAMOUNT; i++) {
-      if (params[i] == NULL)
-        break;
-      if (i == 1)
-        strcat(toExecParams, params[i]);
-      else
-        strcat(strcat(toExecParams, " "), params[i]);
-    }
-    }
-
-  char *opts = malloc(sizeof(options) + sizeof(char) + 1);
-  if (strcmp(options, "\0") != 0)
-    strcat(strcat(strcpy(opts, "-"), options), "\0");
-  else
-    opts = NULL;
-  
-
-  char** arr;
-  if(opts == NULL)
-  {
-    char *test[] = {toExec, toExecParams, opts, NULL};
-    arr = test;
-  }
-  else
-  {
-    char *test[] = {toExec, opts, toExecParams, NULL};
-    arr = test;
-  }
-  if (toExec[0] != '/') {
-    size_t i;
-    char *paths[BUFFERSIZE];
-    paths[0] = strtok(path, ":");
-    for (i = 1; i < BUFFERSIZE; i++) {
-      paths[i] = strtok(NULL, ":");
-    }
-
-    for (i = 0; i < BUFFERSIZE; i++) {
-      if (paths[i] == NULL)
-        break;
-
-      char *temp = strdup(paths[i]);
-      char *pathFull = malloc(BUFFERSIZE);
-      strcpy(pathFull, temp);
-      strcat(strcat(pathFull, "/"), toExec);
-
-      if (execv(pathFull, arr) < 0) {
-        free(pathFull);
-        continue;
+    else {
+      size_t i;
+      for (i = 1; i < ARGSAMOUNT; i++) {
+        if (params[i] == NULL)
+          break;
+        if (i == 1)
+          strcat(toExecParams, params[i]);
+        else
+          strcat(strcat(toExecParams, " "), params[i]);
       }
     }
-  } else {
-    execv(toExec, arr);
+
+    char *opts = malloc(sizeof(options) + sizeof(char) + 1);
+    if (strcmp(options, "\0") != 0)
+      strcat(strcat(strcpy(opts, "-"), options), "\0");
+    else
+      opts = NULL;
+
+    char **arr;
+    if (opts == NULL) {
+      char *temp[] = {toExec, toExecParams, opts, NULL};
+      arr = temp;
+    } else {
+      char *temp[] = {toExec, opts, toExecParams, NULL};
+      arr = temp;
+    }
+
+    if (toExec[0] != '/') {
+      size_t i;
+      char *paths[BUFFERSIZE];
+      paths[0] = strtok(path, ":");
+      for (i = 1; i < BUFFERSIZE; i++) {
+        paths[i] = strtok(NULL, ":");
+      }
+
+      for (i = 0; i < BUFFERSIZE; i++) {
+        if (paths[i] == NULL)
+          break;
+
+        char *temp = strdup(paths[i]);
+        char *pathFull = malloc(BUFFERSIZE);
+        strcpy(pathFull, temp);
+        strcat(strcat(pathFull, "/"), toExec);
+
+        if (execv(pathFull, arr) < 0) {
+          free(pathFull);
+          continue;
+        }
+      }
+
+    }
+    /*absolute path was given so don't look through PATH*/
+    else {
+      execv(toExec, arr);
+    }
+    free(opts);
+    free(toExecParams);
+    exit(EXIT_SUCCESS);
+  default:
+    wait(&status);
+    fprintf(stderr, "Exit status: %d\n", WEXITSTATUS(status));
   }
-  free(opts);
-  free(toExecParams);
-  exit(EXIT_SUCCESS);
-default:
-  wait(&status);
-  fprintf(stderr, "Exit status: %d\n", WEXITSTATUS(status));
+
+  return EXIT_SUCCESS;
 }
 
-return EXIT_SUCCESS;
+/*Runs the myls program
+  expects it to be compiled with no extension and
+  in the same directorry as this file*/
+int ls(char *options, char **params) {
+
+  int status;
+  switch (fork()) {
+  case -1:
+    return EXIT_FAILURE;
+  case 0:
+
+    char *toExec = "./myls";
+    char *toExecParams = malloc(BUFFERSIZE);
+    strcpy(toExecParams, "\0");
+
+    if (params[0] == NULL)
+      toExecParams = NULL;
+    else {
+      size_t i;
+      for (i = 0; i < ARGSAMOUNT; i++) {
+        if (params[i] == NULL)
+          break;
+        if (i == 0)
+          strcat(toExecParams, params[i]);
+        else
+          strcat(strcat(toExecParams, " "), params[i]);
+      }
+    }
+
+    char *opts = malloc(sizeof(options) + sizeof(char) + 1);
+    if (strcmp(options, "\0") != 0)
+      strcat(strcat(strcpy(opts, "-"), options), "\0");
+    else
+      opts = NULL;
+
+    char **arr;
+    if (opts == NULL) {
+      char *temp[] = {toExec, toExecParams, opts, NULL};
+      arr = temp;
+    } else {
+      char *temp[] = {toExec, opts, toExecParams, NULL};
+      arr = temp;
+    }
+    execv(toExec, arr);
+    free(opts);
+    free(toExecParams);
+    exit(EXIT_SUCCESS);
+  default:
+    wait(&status);
+    fprintf(stderr, "Exit status: %d\n", WEXITSTATUS(status));
+  }
+
+  return EXIT_SUCCESS;
 }
 
 void arraddchar(char arr[ARGSAMOUNT], char toAdd) {

@@ -6,42 +6,41 @@
 int main(int argc, char *argv[]) {
   char *path = malloc(256);
   char *options = malloc(16);
+  char *args[16];
   char ignoreChar = '.';
 
   if (argc > 3) {
     fprintf(stderr, "Too many options entered");
     return EXIT_FAILURE;
   }
-
-  switch (argc) {
-  case 3:
-    strcpy(path, argv[1]);
-    strcpy(options, argv[2]);
-    break;
-  case 2:
-    if (argv[1][0] == '-') {
-      strcpy(options, argv[1]);
-      strcpy(path, ".");
-    } else {
-      strcpy(path, argv[1]);
-    }
-    break;
-  default:
-    strcpy(path, ".");
-    break;
+  size_t i;
+  for (i = 1; i < argc; i++) {
+    if (argv[i][0] == '-') {
+      strcpy(options, argv[i]);
+    } else
+      strcpy(path, argv[i]);
   }
+  if (strcmp(options, "\0") == 0)
+    options = NULL;
+  if (strcmp(path, "\0") == 0)
+    strcpy(path, ".");
 
   if (options != NULL) {
-    size_t i = 0;
+    size_t i;
     for (i = 1; i < strlen(options); i++) {
       char option = options[i];
 
       switch (option) {
+      case 'h':
+        printf("Usage: ls [OPTION]... [PATH]\n");
+        printf("Outputs the contents of [PATH] to the standard output.\n\n");
+        printf("-h\t display this help and exit\n");
+        return EXIT_SUCCESS;
       case 'a':
         ignoreChar = ' ';
         break;
       default:
-        fprintf(stderr, "Unrecognized option: %c", option);
+        fprintf(stderr, "Unrecognized option: %c\n", option);
         return EXIT_FAILURE;
       }
     }
